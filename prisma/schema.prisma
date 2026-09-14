@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ActivityType {
+  TOGETHER
+  HELP
+}
+
+enum ParticipantStatus {
+  PENDING
+  JOINED
+  LEFT
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  rating       Float         @default(5)
+  ratingCount  Int           @default(0)
+
+  activities  Activity[]
+  participants Participant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Activity {
+  id          String       @id @default(uuid())
+  creatorId   String
+  creator     User         @relation(fields: [creatorId], references: [id])
+
+  title       String
+  description String?
+  type        ActivityType
+
+  latitude    Float
+  longitude   Float
+
+  startTime   DateTime
+  maxPeople   Int
+
+  participants Participant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Participant {
+  id         String            @id @default(uuid())
+  activityId String
+  userId     String
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status ParticipantStatus @default(JOINED)
+
+  createdAt DateTime @default(now())
+
+  @@unique([activityId, userId])
+}
+
