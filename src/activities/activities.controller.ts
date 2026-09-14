@@ -6,6 +6,8 @@ import {
   Post,
   Query,
   Delete,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 
 import { Request } from 'express';
