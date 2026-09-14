@@ -60,3 +60,14 @@ ALTER TABLE "Participant" ADD CONSTRAINT "Participant_activityId_fkey" FOREIGN K
 
 -- AddForeignKey
 ALTER TABLE "Participant" ADD CONSTRAINT "Participant_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+CREATE INDEX activity_location_idx
+ON "Activity"
+USING GIST (
+  ST_SetSRID(
+    ST_MakePoint(
+      longitude,
+      latitude
+    ),
+    4326
+  )::geography
+);
