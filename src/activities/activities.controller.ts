@@ -59,16 +59,23 @@ export class ActivitiesController {
   @Post(':id/join')
   join(
     @Param('id') id: string,
-    @Headers('x-user-id') userId: string,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.service.join(id, userId);
+    return this.service.join(
+      id,
+      req.user.id,
+    );
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id/leave')
   leave(
     @Param('id') id: string,
-    @Headers('x-user-id') userId: string,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.service.leave(id, userId);
+    return this.service.leave(
+      id,
+      req.user.id,
+    );
   }
 }
