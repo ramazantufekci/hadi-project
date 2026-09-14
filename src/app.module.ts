@@ -7,6 +7,8 @@ import { AuthService } from './auth/auth.service';
 import { ActivitiesController } from './activities/activities.controller';
 import { ActivitiesService } from './activities/activities.service';
 import { ActivitiesModule } from './activities/activities.module';
+import { ChatModule } from './chat/chat.module';
+import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     JwtModule.register({
@@ -15,7 +17,9 @@ import { ActivitiesModule } from './activities/activities.module';
         expiresIn: '30d',
       },
     }),
+    AuthModule,
     ActivitiesModule,
+    ChatModule,
   ],
   controllers: [
     AuthController,
