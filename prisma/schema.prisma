@@ -28,9 +28,11 @@ model User {
 
   activities  Activity[]
   participants Participant[]
+  messages Message[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
 }
 
 model Activity {
@@ -49,6 +51,7 @@ model Activity {
   maxPeople   Int
 
   participants Participant[]
+  messages Message[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,5 +70,30 @@ model Participant {
   createdAt DateTime @default(now())
 
   @@unique([activityId, userId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+
+  activityId String
+  senderId   String
+
+  activity Activity @relation(
+    fields: [activityId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  sender User @relation(
+    fields: [senderId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  content String
+
+  createdAt DateTime @default(now())
+
+  @@index([activityId, createdAt])
 }
 
