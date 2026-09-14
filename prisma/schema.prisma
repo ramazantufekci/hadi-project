@@ -78,17 +78,8 @@ model Message {
   activityId String
   senderId   String
 
-  activity Activity @relation(
-    fields: [activityId],
-    references: [id],
-    onDelete: Cascade
-  )
-
-  sender User @relation(
-    fields: [senderId],
-    references: [id],
-    onDelete: Cascade
-  )
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
   content String
 
