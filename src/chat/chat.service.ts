@@ -50,6 +50,7 @@ export class ChatService {
     socket!.connect();
   }
 
+  
   async getMessages(
     activityId: string,
     userId: string,
@@ -78,16 +79,13 @@ export class ChatService {
             name: true,
           },
         },
-        orderBy: {
-        createdAt: 'asc',
-          include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
       },
+
+      orderBy: {
+        createdAt: 'asc',
+      },
+
+      take: 100,
     });
   }
   void joinActivity({
