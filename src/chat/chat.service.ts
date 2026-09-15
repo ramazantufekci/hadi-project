@@ -1,15 +1,34 @@
 import 'package:socket_io_client/socket_io_client.dart' as io;
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import '../config/api_config.dart';
+import { PrismaService } from '../prisma.service';
 @Injectable()
 export class ChatService {
   // NestJS tarafında socket nesnelerini genellikle Gateway yönetir, 
   // ancak servise bir mantık kuracaksanız buraya yazabilirsiniz.
   
-  constructor() {}
+  constructor(private readonly prisma: PrismaService,) {}
+  async isParticipant(
+    activityId: string,
+    userId: string,
+  ) {
+    const participant =
+      await this.prisma.participant.findUnique({
+        where: {
+          activityId_userId: {
+            activityId,
+            userId,
+          },
+        },
+      });
 
-class ChatService {
+    return participant?.status === 'JOINED';
+  }
   io.Socket? socket;
 
   void connect({
@@ -31,6 +50,46 @@ class ChatService {
     socket!.connect();
   }
 
+  async getMessages(
+    activityId: string,
+    userId: string,
+  ) {
+    const allowed =
+      await this.isParticipant(
+        activityId,
+        userId,
+      );
+
+    if (!allowed) {
+      throw new ForbiddenException(
+        'Bu aktivitenin sohbetine erişemezsiniz.',
+      );
+    }
+
+    return this.prisma.message.findMany({
+      where: {
+        activityId,
+      },
+
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        orderBy: {
+        createdAt: 'asc',
+          include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
   void joinActivity({
     required String activityId,
   }) {
