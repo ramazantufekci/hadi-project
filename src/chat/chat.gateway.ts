@@ -4,6 +4,7 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  WsException,
 } from '@nestjs/websockets';
 
 import {
@@ -12,6 +13,7 @@ import {
 } from 'socket.io';
 
 import { ChatService } from './chat.service';
+import { WsJwtGuard } from './ws-jwt.guard';
 
 @WebSocketGateway({
   cors: {
@@ -24,30 +26,60 @@ export class ChatGateway {
 
   constructor(
     private readonly chatService: ChatService,
+    private readonly wsJwtGuard: WsJwtGuard,
   ) {}
+
+  async handleConnection(
+    client: Socket,
+  ) {
+    try {
+      await this.wsJwtGuard
+        .canActivate({
+          switchToWs: () => ({
+            getClient: () => client,
+          }),
+        } as any);
+    } catch {
+      client.emit(
+        'error_message',
+        {
+          message:
+            'Oturum geçersiz.',
+        },
+      );
+
+      client.disconnect();
+    }
+  }
 
   @SubscribeMessage('join_activity')
   async joinActivity(
-    @ConnectedSocket() socket: Socket,
+    @ConnectedSocket()
+    socket: Socket,
     @MessageBody()
     data: {
       activityId: string;
-      userId: string;
     },
   ) {
+    const userId =
+      socket.data.userId;
+
+    if (!userId) {
+      throw new WsException(
+        'Oturum bulunamadı.',
+      );
+    }
+
     const allowed =
       await this.chatService.isParticipant(
         data.activityId,
-        data.userId,
+        userId,
       );
 
     if (!allowed) {
-      socket.emit('error_message', {
-        message:
-          'Bu aktivitenin sohbetine erişemezsiniz.',
-      });
-
-      return;
+      throw new WsException(
+        'Önce aktiviteye katılmalısınız.',
+      );
     }
 
     await socket.join(
@@ -65,19 +97,28 @@ export class ChatGateway {
 
   @SubscribeMessage('send_message')
   async sendMessage(
-    @ConnectedSocket() socket: Socket,
+    @ConnectedSocket()
+    socket: Socket,
     @MessageBody()
     data: {
       activityId: string;
-      userId: string;
       content: string;
     },
   ) {
+    const userId =
+      socket.data.userId;
+
+    if (!userId) {
+      throw new WsException(
+        'Oturum bulunamadı.',
+      );
+    }
+
     try {
       const message =
         await this.chatService.createMessage(
           data.activityId,
-          data.userId,
+          userId,
           data.content,
         );
 
