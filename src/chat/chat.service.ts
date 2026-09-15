@@ -1,5 +1,4 @@
-import 'package:socket_io_client/socket_io_client.dart'
-    as io;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 import '../config/api_config.dart';
 
