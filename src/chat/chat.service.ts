@@ -1,117 +1,75 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import 'package:socket_io_client/socket_io_client.dart'
+    as io;
 
-import { PrismaService } from '../prisma.service';
+import '../config/api_config.dart';
 
-@Injectable()
-export class ChatService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) {}
+class ChatService {
+  io.Socket? socket;
 
-  async isParticipant(
-    activityId: string,
-    userId: string,
-  ) {
-    const participant =
-      await this.prisma.participant.findUnique({
-        where: {
-          activityId_userId: {
-            activityId,
-            userId,
-          },
-        },
-      });
+  void connect({
+    required String token,
+  }) {
+    socket = io.io(
+      ApiConfig.baseUrl,
+      io.OptionBuilder()
+          .setTransports([
+            'websocket',
+          ])
+          .setAuth({
+            'token': token,
+          })
+          .disableAutoConnect()
+          .build(),
+    );
 
-    return participant?.status === 'JOINED';
+    socket!.connect();
   }
 
-  async getMessages(
-    activityId: string,
-    userId: string,
-  ) {
-    const allowed =
-      await this.isParticipant(
-        activityId,
-        userId,
-      );
-
-    if (!allowed) {
-      throw new ForbiddenException(
-        'Bu aktivitenin sohbetine erişemezsiniz.',
-      );
-    }
-
-    return this.prisma.message.findMany({
-      where: {
-        activityId,
+  void joinActivity({
+    required String activityId,
+  }) {
+    socket?.emit(
+      'join_activity',
+      {
+        'activityId': activityId,
       },
-
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-
-      orderBy: {
-        createdAt: 'asc',
-      },
-
-      take: 100,
-    });
+    );
   }
 
-  async createMessage(
-    activityId: string,
-    userId: string,
-    content: string,
+  void sendMessage({
+    required String activityId,
+    required String content,
+  }) {
+    socket?.emit(
+      'send_message',
+      {
+        'activityId': activityId,
+        'content': content,
+      },
+    );
+  }
+
+  void onMessage(
+    Function(dynamic) callback,
   ) {
-    const activity =
-      await this.prisma.activity.findUnique({
-        where: {
-          id: activityId,
-        },
-      });
+    socket?.on(
+      'new_message',
+      callback,
+    );
+  }
 
-    if (!activity) {
-      throw new NotFoundException(
-        'Aktivite bulunamadı.',
-      );
-    }
+  void onError(
+    Function(dynamic) callback,
+  ) {
+    socket?.on(
+      'error_message',
+      callback,
+    );
+  }
 
-    const allowed =
-      await this.isParticipant(
-        activityId,
-        userId,
-      );
-
-    if (!allowed) {
-      throw new ForbiddenException(
-        'Önce aktiviteye katılmalısınız.',
-      );
-    }
-
-    return this.prisma.message.create({
-      data: {
-        activityId,
-        senderId: userId,
-        content: content.trim(),
-      },
-
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+  void disconnect() {
+    socket?.disconnect();
+    socket?.dispose();
+    socket = null;
   }
 }
