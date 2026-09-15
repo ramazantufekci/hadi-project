@@ -77,7 +77,5 @@ class ChatService {
     socket?.disconnect();
     socket?.dispose();
     socket = null;
-  getHello(): string {
-    return 'Chat Service Çalışıyor';
   }
 }
