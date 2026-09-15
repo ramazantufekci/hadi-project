@@ -88,6 +88,56 @@ export class ChatService {
       take: 100,
     });
   }
+
+   async createMessage(
+    activityId: string,
+    userId: string,
+    content: string,
+  ) {
+    const activity =
+      await this.prisma.activity.findUnique({
+        where: {
+          id: activityId,
+        },
+      });
+
+    if (!activity) {
+      throw new NotFoundException(
+        'Aktivite bulunamadı.',
+      );
+    }
+
+    const allowed =
+      await this.isParticipant(
+        activityId,
+        userId,
+      );
+
+    if (!allowed) {
+      throw new ForbiddenException(
+        'Önce aktiviteye katılmalısınız.',
+      );
+    }
+
+    return this.prisma.message.create({
+      data: {
+        activityId,
+        senderId: userId,
+        content: content.trim(),
+      },
+
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+}
+  
   void joinActivity({
     required String activityId,
   }) {
